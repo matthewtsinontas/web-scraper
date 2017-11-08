@@ -10,7 +10,7 @@ class HelperTest extends TestCase
 
     protected function setUp()
     {
-      $this->helper = new Helper();
+        $this->helper = new Helper();
     }
 
     // Test validateEmail
@@ -25,9 +25,30 @@ class HelperTest extends TestCase
         $this->assertTrue($this->helper->validateEmail("email@domain.com"));
     }
 
-    //Test getDomainFromEmail
+    // Test getDomainFromEmail
     public function testGetDomainFromEmailReturnsCorrectValue()
     {
-      $this->assertEquals($this->helper->getDomainFromEmail("example@domain.com"), "domain.com");
+        $this->assertEquals($this->helper->getDomainFromEmail("example@domain.com"), "domain.com");
+    }
+
+    // Test filterUrls
+    public function testFilterUrlsFiltersByDomain()
+    {
+        $exampleUrls = [
+            "http://example.com/something",
+            "http://example.com/something-else",
+            "mailto:joe@example.com",
+            "http://someethingelse.com/whatever"
+        ];
+        $this->assertCount(2, $this->helper->filterUrls($exampleUrls, 'example.com'));
+    }
+
+    public function testFilterUrlsUniquesTheArray()
+    {
+        $exampleUrls = [
+            "http://example.com/something",
+            "http://example.com/something"
+        ];
+        $this->assertCount(1, $this->helper->filterUrls($exampleUrls, 'example.com'));
     }
 }
