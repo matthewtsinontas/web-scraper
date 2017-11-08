@@ -1,7 +1,7 @@
 <?php
-namespace Application\Validator;
+namespace Application\Helper;
 
-class Validator
+class Helper
 {
     public function validateEmail(string $email = ''): bool
     {
@@ -10,5 +10,11 @@ class Validator
       }
 
       return filter_var($email, FILTER_VALIDATE_EMAIL);
+    }
+
+    public function getDomainFromEmail(string $email): string
+    {
+      $splitEmail = explode("@", $email);
+      return $splitEmail[1];
     }
 }
