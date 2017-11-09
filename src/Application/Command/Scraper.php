@@ -10,6 +10,7 @@ class Scraper
 {
     public function __invoke(Route $route, AdapterInterface $console)
     {
+        // Get email param and set up helper class
         $email = $route->getMatchedParam("email");
         $helper = new Helper();
 
@@ -25,10 +26,27 @@ class Scraper
 
         // Get domain and output
         $domain = $helper->getDomainFromEmail($email);
-        $console->writeLine("Found domain name: ${domain}");
+        $console->writeLine("Found domain name: {$domain}");
 
-        // Scrape site for urls
+        // Scrape homepage for links
         $urls = $helper->getPageUrlsFromDomain($domain);
-        $console->writeLine(sprintf("Found %d domains - scraping...", count($urls)));
+
+        // Extract mailtos:
+        $mailtos = $helper->scrapeMailtos($urls);
+
+        // Extract and format links:
+        $links = $helper->dissectLinks($urls, $domain);
+        $console->writeLine(sprintf("Found %d domains - scraping...", count($links)));
+
+        // Get emails from pages
+        $emails = $helper->getEmailsFromPages($links);
+
+        // Merge mailto and email links, unique down to single array
+        $finalList = array_values(array_unique(array_merge($mailtos, $emails)));
+
+        // Output to console
+        for ($i = 1; $i <= count($finalList); $i++) {
+            $console->writeLine(sprintf("  %d) %s", $i, $finalList[$i - 1]));
+        }
     }
 }

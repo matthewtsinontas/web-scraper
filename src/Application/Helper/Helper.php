@@ -24,13 +24,42 @@ class Helper
     {
         $client = new Client();
 
-        $crawler = $client->request('GET', "http://${domain}");
+        $crawler = $client->request('GET', "http://{$domain}");
 
-        $urls = $crawler->filter('a')->each(function ($node) {
+        return $crawler->filter('a')->each(function ($node) {
             return $node->attr('href');
         });
+    }
 
-        return $this->filterUrls($urls, $domain);
+    public function scrapeMailtos(array $links): array
+    {
+        $mailtos = array_filter($links, function($link) {
+            return strpos($link, "mailto:") === 0;
+        });
+
+        return array_unique(array_map(function ($mailto) {
+            return explode("mailto:", $mailto)[1];
+        }, $mailtos));
+    }
+
+    public function dissectLinks(array $links, string $domain): array
+    {
+        $formatted = [];
+
+        foreach ($links as $link) {
+            // Relative link: /about-us, /docs
+            if (strpos($link, '/') === 0) {
+                $formatted[] = "http://{$domain}{$link}";
+                continue;
+            }
+            // Static link: http://domain.com/whatever
+            if (strpos($link, 'http') === 0 && strpos($link, "$domain/") !== false) {
+                $formatted[] = $link;
+                continue;
+            }
+        }
+
+        return array_unique($formatted);
     }
 
     public function filterUrls(array $urls, string $domain): array
@@ -40,5 +69,29 @@ class Helper
         });
 
         return array_unique($domainOnly);
+    }
+
+    public function getEmailsFromPages(array $urls): array
+    {
+        $client = new Client();
+        $allEmails = [];
+
+        foreach ($urls as $url) {
+          // Go to url then preg match emails from the page text, then return them
+          $crawler = $client->request('GET', $url);
+          $pattern = '/[a-z0-9_\-\+]+@[a-z0-9\-]+\.([a-z]{2,3})(?:\.[a-z]{2})?/i';
+          $text = $crawler->filter('body')->text();
+          $matches = [];
+          preg_match_all($pattern, $text, $matches);
+          $allEmails[] = $matches[0];
+        }
+
+        $flattenedArray = [];
+
+        array_walk_recursive($allEmails, function($a) use (&$flattenedArray) {
+          $flattenedArray[] = $a;
+        });
+
+        return $flattenedArray;
     }
 }
