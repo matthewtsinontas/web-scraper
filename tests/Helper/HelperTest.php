@@ -31,6 +31,19 @@ class HelperTest extends TestCase
         $this->assertEquals($this->helper->getDomainFromEmail("example@domain.com"), "domain.com");
     }
 
+    // Test scrapeMailtos
+    public function testscrapeMailtosFiltersCorrectly()
+    {
+        $exampleLinks = [
+            'mailto:email@email.com',
+            'mailto:email2@email.com',
+            'http://url.co.uk'
+        ];
+        $mailtos = $this->helper->scrapeMailtos($exampleLinks);
+        $this->assertCount(2, $mailtos);
+        $this->assertNotContains('http://url.co.uk', $exampleLinks);
+    }
+
     // Test filterUrls
     public function testFilterUrlsFiltersByDomain()
     {
@@ -41,14 +54,5 @@ class HelperTest extends TestCase
             "http://someethingelse.com/whatever"
         ];
         $this->assertCount(2, $this->helper->filterUrls($exampleUrls, 'example.com'));
-    }
-
-    public function testFilterUrlsUniquesTheArray()
-    {
-        $exampleUrls = [
-            "http://example.com/something",
-            "http://example.com/something"
-        ];
-        $this->assertCount(1, $this->helper->filterUrls($exampleUrls, 'example.com'));
     }
 }

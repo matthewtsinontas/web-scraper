@@ -36,18 +36,22 @@ class Scraper
 
         // Extract and format links:
         $links = $helper->dissectLinks($urls, $domain);
-        $console->writeLine(sprintf("Found %d pages: searching for emails...", count($links)));
+        $console->writeLine(sprintf("Found %d pages: searching for data", count($links)));
 
-        // Get emails from pages
-        $emails = $helper->getEmailsFromPages($links);
+        // Get data from pages
+        $data = $helper->traverseLinks($links);
 
-        // Merge mailto and email links, unique down to single array
-        $finalList = array_values(array_unique(array_merge($mailtos, $emails)));
-
-        $console->writeLine(sprintf("Found %d emails:", count($finalList)));
-        // Output to console
-        for ($i = 1; $i <= count($finalList); $i++) {
-            $console->writeLine(sprintf("  %d) %s", $i, $finalList[$i - 1]));
+        // Dont like this... want to find a nicer way to iterate over the data
+        $console->writeLine("");
+        foreach ($data as $key => $value) {
+            $console->writeLine(sprintf("Found %d %s:", count($value), $key));
+            foreach ($value as $i => $data) {
+                $console->writeLine(sprintf("  %d) %s", $i + 1, $data));
+            }
+            $console->writeLine("");
         }
+
+        // End
+        $console->writeLine("Thank you for using the web scraper!", Color::GREEN);
     }
 }

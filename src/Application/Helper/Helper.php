@@ -5,7 +5,7 @@ use Goutte\Client;
 
 class Helper
 {
-    public function validateEmail(string $email = ''): bool
+    public function validateEmail(string $email = ""): bool
     {
         if (!$email) {
             return false;
@@ -71,27 +71,86 @@ class Helper
         return array_unique($domainOnly);
     }
 
-    public function getEmailsFromPages(array $urls): array
+    public function getEmailsFromText(string $text): array
+    {
+        $pattern = '/[a-z0-9_\-\+]+@[a-z0-9\-]+\.([a-z]{2,3})(?:\.[a-z]{2})?/i';
+        $matches = [];
+        preg_match_all($pattern, $text, $matches);
+        return $matches[0];
+    }
+
+    public function getPhoneNumbersFromText(string $text): array
+    {
+        // Fetch all numbers longer than 2 digits
+        $matches = [];
+        $pattern = '/([0-9]{2,})\d+/';
+        preg_match_all($pattern, $text, $matches);
+        return array_unique($this->buildPhoneNumbersFromDigitArray($matches[0]));
+    }
+
+    public function buildPhoneNumbersFromDigitArray(array $digits): array
+    {
+        $possibleNumbers = [];
+        $currentNumber = '';
+
+        for ($i = 0; $i < count($digits); $i++) {
+            $number = $digits[$i];
+
+            // If not building a current number, check if the beginning of the number
+            // if 0x with x being a digit other than 0 (01, 02, 03 etc.)
+            if (empty($currentNumber)) {
+                if ($number[0] != 0 || $number[1] == 0) {
+                    continue;
+                }
+            }
+
+            // Append number onto current build and check length
+            $currentNumber .= $digits[$i];
+            $currentLength = strlen($currentNumber);
+
+            // If greater than 10, its either a formed number, or too long
+            if ($currentLength > 10) {
+                if ($currentLength === 11) {
+                    $possibleNumbers[] = $currentNumber;
+                }
+                $currentNumber = '';
+                continue;
+            }
+        }
+
+        return $possibleNumbers;
+    }
+
+    public function flattenAndUniqueArrays(array $array): array
+    {
+        $flattenedArray = [];
+        array_walk_recursive($array, function($a) use (&$flattenedArray) {
+          $flattenedArray[] = $a;
+        });
+        return array_values(array_unique($flattenedArray));
+    }
+
+    public function traverseLinks(array $urls): array
     {
         $client = new Client();
-        $allEmails = [];
+        $emails = [];
+        $phones = [];
 
         foreach ($urls as $url) {
           // Go to url then preg match emails from the page text, then return them
           $crawler = $client->request('GET', $url);
-          $pattern = '/[a-z0-9_\-\+]+@[a-z0-9\-]+\.([a-z]{2,3})(?:\.[a-z]{2})?/i';
           $text = $crawler->filter('body')->text();
-          $matches = [];
-          preg_match_all($pattern, $text, $matches);
-          $allEmails[] = $matches[0];
+
+          // Drop emails into array
+          $emails[] = $this->getEmailsFromText($text);
+
+          // Fetch phone numbers
+          $phones[] = $this->getPhoneNumbersFromText($text);
         }
 
-        $flattenedArray = [];
-
-        array_walk_recursive($allEmails, function($a) use (&$flattenedArray) {
-          $flattenedArray[] = $a;
-        });
-
-        return $flattenedArray;
+        return [
+          'emails' => $this->flattenAndUniqueArrays($emails),
+          'phones' => $this->flattenAndUniqueArrays($phones)
+        ];
     }
 }
