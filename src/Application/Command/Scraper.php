@@ -36,7 +36,14 @@ class Scraper
 
         // Extract and format links:
         $links = $helper->dissectLinks($urls, $domain);
-        $console->writeLine(sprintf("Found %d pages: searching for data", count($links)));
+        $linkCount = count($links);
+        $estimatedTime = sprintf(
+          "Estimated completion time: %s - %s seconds",
+          ceil($linkCount * 0.3),
+          ceil($linkCount * 0.4)
+        );
+        $console->writeLine(sprintf("Found %d pages: searching for data", $linkCount));
+        $console->writeLine($estimatedTime, Color::YELLOW);
 
         // Get data from pages
         $data = $helper->traverseLinks($links);
